@@ -26,7 +26,11 @@ export const insertSnapshotSchema = createInsertSchema(snapshots).omit({
   createdAt: true,
   updatedAt: true,
 });
-export const insertSnapshotParams = baseSchema.omit({ id: true });
+export const insertSnapshotParams = baseSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export const snapshotIdSchema = baseSchema.pick({ id: true });
 
