@@ -1,12 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { nanoid } from "nanoid";
 import { snapshots } from "./snapshots";
 import { z } from "zod";
 
 export const users = sqliteTable("users", {
-  id: text("id").primaryKey().default(nanoid()),
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name"),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`),
