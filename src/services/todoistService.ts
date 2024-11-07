@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { TaskEventType } from "../types";
+import { SyncResources, TaskEventType } from "../types";
 
 const TODOIST_API_KEY = process.env.TODOIST_API_KEY;
 const PROJECT_ID = process.env.TODOIST_PROJECT_ID;
@@ -65,9 +65,11 @@ export class TodoistService {
     return activityResponse.json();
   }
 
-  static async readSyncResources(syncToken: string = "*") {
+  static async readSyncResources(
+    syncToken: string = "*"
+  ): Promise<SyncResources> {
     const resourcesResponse = await fetch(
-      `${TODOIST_SYNC_URL}/sync?sync_token=${syncToken}&resource_types=["items","completed_info"]`,
+      `${TODOIST_SYNC_URL}/sync?sync_token=${syncToken}&resource_types=["items","completed_info","stats"]`,
       {
         headers: {
           Authorization: `Bearer ${TODOIST_API_KEY}`,
@@ -80,5 +82,22 @@ export class TodoistService {
     }
 
     return resourcesResponse.json();
+  }
+
+  static async getCompletedItems() {
+    const completedItemsResponse = await fetch(
+      `${TODOIST_SYNC_URL}/archive/items?project_id=${PROJECT_ID}&limit=20`,
+      {
+        headers: {
+          Authorization: `Bearer ${TODOIST_API_KEY}`,
+        },
+      }
+    );
+
+    if (!completedItemsResponse.ok) {
+      throw new Error("Failed to fetch completed items");
+    }
+
+    return completedItemsResponse.json();
   }
 }
