@@ -12,6 +12,11 @@ const app: Application = express();
 
 app.use(express.json());
 
+app.get("/", async (req, res) => {
+  const users = await UserService.indexUsers();
+  res.send(users);
+});
+
 const isWithinLast24Hours = (date: string | number | Date) => {
   const now = new Date();
   const dateToCheck = new Date(date);

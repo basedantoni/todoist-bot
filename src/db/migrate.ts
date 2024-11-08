@@ -1,6 +1,6 @@
 import "dotenv/config";
-
 import { drizzle } from "drizzle-orm/libsql";
+
 import { migrate } from "drizzle-orm/libsql/migrator";
 
 const runMigrate = async () => {
@@ -8,11 +8,16 @@ const runMigrate = async () => {
     throw new Error("DB_FILE_NAME is not defined");
   }
 
-  const db = drizzle(process.env.DB_FILE_NAME!);
-
   console.log("⏳ Running migrations...");
 
   const start = Date.now();
+
+  const db = drizzle({
+    connection: {
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    },
+  });
 
   await migrate(db, { migrationsFolder: "src/db/migrations" });
 

@@ -4,9 +4,10 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "tsc && node dist/server.js",
+    "start:docker": "tsc && node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"tsup src --watch\" \"nodemon dist/server.js\"",
-    "build": "tsc src",
+    "build": "tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:drop": "drizzle-kit drop",

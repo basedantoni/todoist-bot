@@ -1,0 +1,8 @@
+.pnpm-store
+.vscode
+data/*
+data/todoist.db
+database/*
+database/database.sqlite
+dist
+node_modules
