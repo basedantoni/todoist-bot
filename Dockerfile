@@ -18,6 +18,9 @@ RUN pnpm install
 COPY tsconfig.json ./
 COPY src ./src
 
+# Copy SQL files
+COPY src/db/migrations ./src/db/migrations
+
 # Build the TypeScript code
 RUN pnpm run build
 
