@@ -6,7 +6,7 @@
     "start": "tsc && node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"tsup src --watch\" \"nodemon dist/server.js\"",
-    "build": "tsup src",
+    "build": "tsc src",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:drop": "drizzle-kit drop",
