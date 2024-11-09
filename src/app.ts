@@ -128,7 +128,7 @@ cron.schedule(
       }
 
       // Build message
-      let message = "Todoist Bot Report\n\n";
+      let message = "";
       let anthonyMoneyOwed = 0;
       let jacobMoneyOwed = 0;
 
@@ -138,10 +138,10 @@ cron.schedule(
 
         if (user?.name === "anthony") {
           anthonyMoneyOwed = stats.moneyOwed;
-          message += `Anthony completed ${stats.completedItems} out of ${stats.totalItems} items\n\n`;
+          message += `Anthony completed ${stats.completedItems} out of ${stats.totalItems} items\n`;
         } else {
           jacobMoneyOwed = stats.moneyOwed;
-          message += `Jacob completed ${stats.completedItems} out of ${stats.totalItems} items\n\n`;
+          message += `Jacob completed ${stats.completedItems} out of ${stats.totalItems} items\n`;
         }
       }
 
@@ -154,22 +154,11 @@ cron.schedule(
       }
 
       if (userStatsMap.size > 0) {
-        // Send SMS to users
-        const client = twilio(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-
-        await client.messages.create({
-          body: message,
-          from: process.env.TWILIO_PHONE_NUMBER || "",
-          to: process.env.ANTHONY_PHONE_NUMBER || "",
-        });
-
-        await client.messages.create({
-          body: message,
-          from: process.env.TWILIO_PHONE_NUMBER || "",
-          to: process.env.JACOB_PHONE_NUMBER || "",
+        await TodoistService.addItem({
+          content: message,
+          project_id: process.env.TODOIST_PROJECT_ID || "",
+          labels: ["bot", "report"],
+          description: "Todoist Bot Report",
         });
       }
 

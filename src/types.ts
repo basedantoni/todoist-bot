@@ -19,6 +19,13 @@ export interface Task {
   url: string;
 }
 
+export interface NewTask {
+  content: string;
+  description: string;
+  project_id: string;
+  labels: string[];
+}
+
 export interface Due {
   date: string;
   is_recurring: boolean;

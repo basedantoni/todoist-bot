@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { SyncResources, TaskEventType } from "../types";
+import { NewTask, SyncResources, TaskEventType } from "../types";
 
 const TODOIST_API_KEY = process.env.TODOIST_API_KEY;
 const PROJECT_ID = process.env.TODOIST_PROJECT_ID;
@@ -99,5 +99,23 @@ export class TodoistService {
     }
 
     return completedItemsResponse.json();
+  }
+
+  static async addItem(item: NewTask) {
+    const addItemResponse = await fetch(`${TODOIST_REST_URL}/tasks`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TODOIST_API_KEY}`,
+        "Content-Type": "application/json",
+        "X-Request-Id": crypto.randomUUID(),
+      },
+      body: JSON.stringify(item),
+    });
+
+    if (!addItemResponse.ok) {
+      throw new Error("Failed to add item");
+    }
+
+    return addItemResponse.json();
   }
 }
