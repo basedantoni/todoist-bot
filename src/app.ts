@@ -8,7 +8,7 @@ import { taskReportCron } from "./cron/taskReportCron";
 app.use(express.json());
 
 app.get("/health", async (req, res) => {
-  res.send("OK");
+  res.send("CI/CD");
 });
 
 taskReportCron.start();
