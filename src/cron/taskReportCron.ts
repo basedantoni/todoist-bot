@@ -3,6 +3,7 @@ import { UserService } from "../services/userService";
 import { TodoistService } from "../services/todoistService";
 import { SyncTokenService } from "../services/syncTokensService";
 import { UserStats } from "../types";
+import { SnapshotService } from "../services/snapshotService";
 
 const isWithinLast24Hours = (date: string | number | Date) => {
   const now = new Date();
@@ -144,6 +145,18 @@ export const taskReportCron = cron.schedule(
           description: "Todoist Bot Report",
           responsible_uid: process.env.BOT_USER_ID || "",
         });
+      }
+
+      for (const [userId, stats] of userStatsMap.entries()) {
+        try {
+          await SnapshotService.createSnapshot({
+            activeTasks: stats.totalItems,
+            completedTasks: stats.completedItems,
+            userId: Number(userId),
+          });
+        } catch (error) {
+          console.error("Error creating snapshot:", error);
+        }
       }
     } catch (error) {
       console.error("Error running task snapshot job:", error);
