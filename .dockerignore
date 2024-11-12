@@ -6,3 +6,13 @@ database/*
 database/database.sqlite
 dist
 node_modules
+.dockerignore
+Dockerfile
+npm-debug.log
+pnpm-debug.log
+pnpm-lock.yaml
+pnpm-workspace.yaml
+pnpm-workspace.yaml.bak
+pnpm-workspace.yaml.bak.2
+pnpm-workspace.yaml.bak.3
+pnpm-workspace.yaml.bak.4

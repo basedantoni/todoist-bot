@@ -24,6 +24,7 @@ export interface NewTask {
   description: string;
   project_id: string;
   labels: string[];
+  responsible_uid: string;
 }
 
 export interface Due {

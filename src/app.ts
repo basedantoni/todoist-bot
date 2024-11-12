@@ -2,7 +2,6 @@ import "dotenv/config";
 import cron from "node-cron";
 import express, { Application } from "express";
 
-import twilio from "twilio";
 import { UserService } from "./services/userService";
 import { TodoistService } from "./services/todoistService";
 import { SyncTokenService } from "./services/syncTokensService";
@@ -12,9 +11,8 @@ const app: Application = express();
 
 app.use(express.json());
 
-app.get("/", async (req, res) => {
-  const users = await UserService.indexUsers();
-  res.send(users);
+app.get("/health", async (req, res) => {
+  res.send("OK");
 });
 
 const isWithinLast24Hours = (date: string | number | Date) => {
@@ -137,10 +135,10 @@ cron.schedule(
         const user = await UserService.showUserByTodoistId(userId);
 
         if (user?.name === "anthony") {
-          anthonyMoneyOwed = stats.moneyOwed;
+          anthonyMoneyOwed = moneyOwed;
           message += `Anthony completed ${stats.completedItems} out of ${stats.totalItems} items\n`;
         } else {
-          jacobMoneyOwed = stats.moneyOwed;
+          jacobMoneyOwed = moneyOwed;
           message += `Jacob completed ${stats.completedItems} out of ${stats.totalItems} items\n`;
         }
       }
@@ -159,10 +157,9 @@ cron.schedule(
           project_id: process.env.TODOIST_PROJECT_ID || "",
           labels: ["bot", "report"],
           description: "Todoist Bot Report",
+          responsible_uid: process.env.BOT_USER_ID || "",
         });
       }
-
-      console.log(message);
     } catch (error) {
       console.error("Error running task snapshot job:", error);
     }

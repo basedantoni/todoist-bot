@@ -101,18 +101,39 @@ export class TodoistService {
     return completedItemsResponse.json();
   }
 
-  static async addItem(item: NewTask) {
-    const addItemResponse = await fetch(`${TODOIST_REST_URL}/tasks`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${TODOIST_API_KEY}`,
-        "Content-Type": "application/json",
-        "X-Request-Id": crypto.randomUUID(),
+  static async addItem({ content, project_id, labels, description }: NewTask) {
+    const headers = {
+      Authorization: `Bearer ${TODOIST_API_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+
+    const commands = [
+      {
+        type: "item_add",
+        temp_id: crypto.randomUUID(),
+        uuid: crypto.randomUUID(),
+        args: {
+          content,
+          project_id,
+          labels,
+          description,
+        },
       },
-      body: JSON.stringify(item),
+    ];
+
+    // Construct the body as form data
+    const body = new URLSearchParams({
+      commands: JSON.stringify(commands),
+    });
+
+    const addItemResponse = await fetch(`${TODOIST_SYNC_URL}/sync`, {
+      method: "POST",
+      headers,
+      body: body.toString(),
     });
 
     if (!addItemResponse.ok) {
+      console.log(addItemResponse);
       throw new Error("Failed to add item");
     }
 
