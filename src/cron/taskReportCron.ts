@@ -46,16 +46,19 @@ export const taskReportCron = cron.schedule(
       // Generate report
       const userStatsMap: Map<string, UserStats> = new Map();
       const projectItems = syncResources.items.filter(
-        (item) =>
-          item.project_id === process.env.TODOIST_PROJECT_ID &&
-          ["45187088", "11686379"].includes(item.added_by_uid)
+        (item) => item.project_id === process.env.TODOIST_PROJECT_ID
       );
 
       for (const item of projectItems) {
         const userId = item.added_by_uid;
         const dueDate = item.due?.date;
+        const completedAt = item.completed_at
+          ? new Date(item.completed_at)
+          : null;
 
-        if (dueDate && !isWithinLast24Hours(`${dueDate}`)) continue;
+        const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
+        // Skip if due date is in the future
+        if (!completedAt && dueDate && new Date(dueDate) > today) continue;
 
         if (userStatsMap.has(userId)) {
           const stats: UserStats | undefined = userStatsMap.get(userId) || {
@@ -76,21 +79,14 @@ export const taskReportCron = cron.schedule(
           });
         }
 
-        const completedAt = item.completed_at
-          ? new Date(item.completed_at)
-          : null;
-        console.log("Item Details", {
-          userId,
-          dueDate,
-          completedAt: completedAt ?? null,
-          content: item.content,
-        });
-
+        // check if due date is greater than two days prior
+        let date = new Date();
+        date.setDate(date.getDate() - 2);
         if (
           completedAt &&
           dueDate &&
           isWithinLast24Hours(`${completedAt}`) &&
-          new Date(dueDate) > new Date(completedAt)
+          new Date(dueDate) > date
         ) {
           const stats = userStatsMap.get(userId);
           if (stats) {
@@ -113,6 +109,7 @@ export const taskReportCron = cron.schedule(
 
       // Build message
       let message = "";
+      let description = "";
       let anthonyMoneyOwed = 0;
       let jacobMoneyOwed = 0;
 
@@ -122,10 +119,10 @@ export const taskReportCron = cron.schedule(
 
         if (user?.name === "anthony") {
           anthonyMoneyOwed = moneyOwed;
-          message += `Anthony completed ${stats.completedItems}/${stats.totalItems} items\n`;
-        } else {
+          description += `Anthony completed ${stats.completedItems}/${stats.totalItems} items\n`;
+        } else if (user?.name === "jacob") {
           jacobMoneyOwed = moneyOwed;
-          message += `Jacob completed ${stats.completedItems}/${stats.totalItems} items\n`;
+          description += `Jacob completed ${stats.completedItems}/${stats.totalItems} items\n`;
         }
       }
 
@@ -135,6 +132,8 @@ export const taskReportCron = cron.schedule(
         message = `Anthony owes $${moneyOwedDifference}\n` + message;
       } else if (jacobMoneyOwed > anthonyMoneyOwed) {
         message = `Jacob owes $${moneyOwedDifference}\n` + message;
+      } else if (anthonyMoneyOwed === jacobMoneyOwed) {
+        message = "No one owes any money\n" + message;
       }
 
       if (userStatsMap.size > 0) {
@@ -142,17 +141,20 @@ export const taskReportCron = cron.schedule(
           content: message,
           project_id: process.env.TODOIST_PROJECT_ID || "",
           labels: ["bot", "report"],
-          description: "Todoist Bot Report",
+          description: description,
           responsible_uid: process.env.BOT_USER_ID || "",
         });
       }
 
       for (const [userId, stats] of userStatsMap.entries()) {
+        let user = await UserService.showUserByTodoistId(userId);
+        if (!user) continue;
+
         try {
           await SnapshotService.createSnapshot({
             activeTasks: stats.totalItems,
             completedTasks: stats.completedItems,
-            userId: Number(userId),
+            userId: user.id,
           });
         } catch (error) {
           console.error("Error creating snapshot:", error);
@@ -161,6 +163,8 @@ export const taskReportCron = cron.schedule(
     } catch (error) {
       console.error("Error running task snapshot job:", error);
     }
+
+    console.log("Report Cron Job Completed");
   },
   {
     scheduled: true,
