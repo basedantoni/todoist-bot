@@ -7,6 +7,10 @@ import { taskReportCron } from "./cron/taskReportCron";
 
 app.use(express.json());
 
+app.get("/", async (req, res) => {
+  res.send("Ponyo");
+});
+
 app.get("/health", async (req, res) => {
   res.send("OK");
 });
