@@ -119,10 +119,10 @@ export const taskReportCron = cron.schedule(
 
         if (user?.name === "anthony") {
           anthonyMoneyOwed = moneyOwed;
-          description += `Anthony completed ${stats.completedItems}/${stats.totalItems} items\n`;
+          description += `Anthony: ${stats.completedItems}/${stats.totalItems} items\n`;
         } else if (user?.name === "jacob") {
           jacobMoneyOwed = moneyOwed;
-          description += `Jacob completed ${stats.completedItems}/${stats.totalItems} items\n`;
+          description += `Jacob: ${stats.completedItems}/${stats.totalItems} items\n`;
         }
       }
 
