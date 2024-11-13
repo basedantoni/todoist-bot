@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /var/www/yourrepository
+cd ~/todoist-bot
 git pull origin main
 pnpm install
 pnpm build
