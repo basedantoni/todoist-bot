@@ -4,6 +4,7 @@ import { TodoistService } from "../services/todoistService";
 import { SyncTokenService } from "../services/syncTokensService";
 import { UserStats } from "../types";
 import { SnapshotService } from "../services/snapshotService";
+import { isSameDay } from "date-fns";
 
 const isWithinLast24Hours = (date: string | number | Date) => {
   const now = new Date();
@@ -45,9 +46,18 @@ export const taskReportCron = cron.schedule(
 
       // Generate report
       const userStatsMap: Map<string, UserStats> = new Map();
-      const projectItems = syncResources.items.filter(
-        (item) => item.project_id === process.env.TODOIST_PROJECT_ID
-      );
+      const projectItems = syncResources.items.filter((item) => {
+        const dueDate = item.due?.date
+          ? new Date(item.due.date).setUTCHours(0, 0, 0, 0)
+          : null;
+        const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
+
+        return (
+          item.project_id === process.env.TODOIST_PROJECT_ID &&
+          dueDate &&
+          !isSameDay(dueDate, today)
+        );
+      });
 
       for (const item of projectItems) {
         const userId = item.added_by_uid;
@@ -156,6 +166,8 @@ export const taskReportCron = cron.schedule(
             completedTasks: stats.completedItems,
             userId: user.id,
           });
+
+          console.log(`Created snapshot for ${user.name}`);
         } catch (error) {
           console.error("Error creating snapshot:", error);
         }
