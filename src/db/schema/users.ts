@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { snapshots } from "./snapshots";
+import { usersToProjects } from "./projectsToUsers";
 import { z } from "zod";
 
 export const users = sqliteTable("users", {
@@ -14,6 +15,7 @@ export const users = sqliteTable("users", {
 
 export const usersRelations = relations(users, ({ many }) => ({
   snapshots: many(snapshots),
+  usersToProjects: many(usersToProjects),
 }));
 
 // createSelectSchema(users).omit(<omitted-fields>)

@@ -12,12 +12,17 @@ const runMigrate = async () => {
 
   const start = Date.now();
 
-  const db = drizzle({
-    connection: {
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    },
-  });
+  const db =
+    process.env.NODE_ENV === "production"
+      ? drizzle({
+          connection: {
+            url: process.env.TURSO_DATABASE_URL!,
+            authToken: process.env.TURSO_AUTH_TOKEN,
+          },
+        })
+      : drizzle({
+          connection: process.env.DB_FILE_NAME,
+        });
 
   await migrate(db, { migrationsFolder: "src/db/migrations" });
 
