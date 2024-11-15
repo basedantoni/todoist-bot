@@ -101,7 +101,13 @@ export class TodoistService {
     return completedItemsResponse.json();
   }
 
-  static async addItem({ content, project_id, labels, description }: NewTask) {
+  static async addItem({
+    content,
+    project_id,
+    labels,
+    description,
+    responsible_uid,
+  }: NewTask) {
     const headers = {
       Authorization: `Bearer ${TODOIST_API_KEY}`,
       "Content-Type": "application/x-www-form-urlencoded",
@@ -117,6 +123,7 @@ export class TodoistService {
           project_id,
           labels,
           description,
+          responsible_uid,
         },
       },
     ];
@@ -138,5 +145,37 @@ export class TodoistService {
     }
 
     return addItemResponse.json();
+  }
+
+  static async deleteItem(itemId: string) {
+    const headers = {
+      Authorization: `Bearer ${TODOIST_API_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+
+    const commands = [
+      {
+        type: "item_delete",
+        uuid: crypto.randomUUID(),
+        args: {
+          id: itemId,
+        },
+      },
+    ];
+
+    // Construct the body as form data
+    const body = new URLSearchParams({
+      commands: JSON.stringify(commands),
+    });
+
+    const deleteItemResponse = await fetch(`${TODOIST_SYNC_URL}/sync`, {
+      method: "POST",
+      headers,
+      body: body.toString(),
+    });
+
+    if (!deleteItemResponse.ok) {
+      throw new Error("Failed to delete item");
+    }
   }
 }

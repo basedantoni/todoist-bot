@@ -4,6 +4,7 @@ import express, { Application } from "express";
 const app: Application = express();
 
 import { taskReportCron } from "./cron/taskReportCron";
+import { deleteDailyReportCron } from "./cron/deleteDailyReportCron";
 
 app.use(express.json());
 
@@ -16,5 +17,6 @@ app.get("/health", async (req, res) => {
 });
 
 taskReportCron.start();
+deleteDailyReportCron.start();
 
 export default app;
