@@ -18,4 +18,9 @@ export class SnapshotController {
     const snapshot = await SnapshotService.showSnapshot(req.params.id);
     res.json({ snapshot });
   }
+
+  static async showTotalCompletedTasks(req: Request, res: Response) {
+    const totalCompletedTasks = await SnapshotService.showTotalCompletedTasks();
+    res.json({ totalCompletedTasks });
+  }
 }

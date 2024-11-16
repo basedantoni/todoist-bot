@@ -1,6 +1,6 @@
 import { db } from "../db/drizzle";
 import { NewSnapshotParams, snapshots } from "../db/schema/snapshots";
-import { eq } from "drizzle-orm";
+import { eq, sum } from "drizzle-orm";
 export class SnapshotService {
   static async createSnapshot(snapshotParams: NewSnapshotParams) {
     const snapshotRow = await db
@@ -29,5 +29,14 @@ export class SnapshotService {
       .from(snapshots)
       .where(eq(snapshots.id, Number(id)));
     return snapshotRow[0];
+  }
+
+  static async showTotalCompletedTasks() {
+    const totalCompletedTasks = await db
+      .select({
+        total: sum(snapshots.completedTasks),
+      })
+      .from(snapshots);
+    return totalCompletedTasks[0];
   }
 }
