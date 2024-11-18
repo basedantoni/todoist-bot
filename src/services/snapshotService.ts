@@ -1,6 +1,6 @@
 import { db } from "../db/drizzle";
 import { NewSnapshotParams, snapshots } from "../db/schema/snapshots";
-import { eq, sum } from "drizzle-orm";
+import { eq, sum, and, gt } from "drizzle-orm";
 export class SnapshotService {
   static async createSnapshot(snapshotParams: NewSnapshotParams) {
     const snapshotRow = await db
@@ -15,11 +15,20 @@ export class SnapshotService {
     return snapshotRows;
   }
 
-  static async indexSnapshotsByUser(userId: string) {
+  static async indexSnapshotsByUser(userId: string, startDate?: string) {
+    const conditions = [eq(snapshots.userId, Number(userId))];
+
+    if (startDate) {
+      // Assuming startDate is in a valid ISO format
+      const startDateParsed = new Date(startDate).toISOString();
+      conditions.push(gt(snapshots.createdAt, startDateParsed));
+    }
+
     const snapshotRows = await db
       .select()
       .from(snapshots)
-      .where(eq(snapshots.userId, Number(userId)));
+      .where(and(...conditions));
+
     return snapshotRows;
   }
 

@@ -8,10 +8,20 @@ export class SnapshotController {
   }
 
   static async indexSnapshotsByUser(req: Request, res: Response) {
-    const snapshots = await SnapshotService.indexSnapshotsByUser(
-      req.params.userId
-    );
-    res.json({ snapshots });
+    const userId = req.params.userId;
+    const startDate = req.query.start_date as string;
+
+    try {
+      const snapshots = await SnapshotService.indexSnapshotsByUser(
+        userId,
+        startDate
+      );
+      res.json({ snapshots });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ error: "An error occurred while fetching snapshots." });
+    }
   }
 
   static async showSnapshot(req: Request, res: Response) {
