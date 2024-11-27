@@ -55,20 +55,21 @@ export const taskReportCron = cron.schedule(
         return (
           item.project_id === process.env.TODOIST_PROJECT_ID &&
           dueDate &&
-          !isSameDay(dueDate, today)
+          (!isSameDay(dueDate, today) || item.due?.is_recurring)
         );
       });
 
       for (const item of projectItems) {
         const userId = item.added_by_uid;
         const dueDate = item.due?.date;
+        const isRecurring = item.due?.is_recurring;
         const completedAt = item.completed_at
           ? new Date(item.completed_at)
           : null;
 
         const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
         // Skip if due date is in the future
-        if (!completedAt && dueDate && new Date(dueDate) > today) continue;
+        if (!completedAt && dueDate && new Date(dueDate) > today && !isRecurring) continue;
 
         if (userStatsMap.has(userId)) {
           const stats: UserStats | undefined = userStatsMap.get(userId) || {
@@ -98,6 +99,16 @@ export const taskReportCron = cron.schedule(
           isWithinLast24Hours(`${completedAt}`) &&
           new Date(dueDate) > date
         ) {
+          const stats = userStatsMap.get(userId);
+          if (stats) {
+            userStatsMap.set(userId, {
+              ...stats,
+              completedItems: stats.completedItems + 1,
+            });
+          }
+        }
+
+        if (isRecurring && dueDate && new Date(dueDate) > date) {
           const stats = userStatsMap.get(userId);
           if (stats) {
             userStatsMap.set(userId, {
