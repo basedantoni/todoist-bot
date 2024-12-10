@@ -4,19 +4,29 @@ import { TodoistService } from "../services/todoistService";
 import { SyncTokenService } from "../services/syncTokensService";
 import { UserStats } from "../types";
 import { SnapshotService } from "../services/snapshotService";
-import { isSameDay } from "date-fns";
+import { isSameDay, isYesterday, getDay, isFuture, addDays } from "date-fns";
+import { isWithinLast24Hours, calculateUserMoneyOwed, dayStringToNumber } from "../lib/report";
 
-const isWithinLast24Hours = (date: string | number | Date) => {
-  const now = new Date();
-  const dateToCheck = new Date(date);
-  const timeDifference = now.getTime() - dateToCheck.getTime();
-  return timeDifference <= 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-};
+const processTasks = (userStatsMap: Map<string, UserStats>, userId: string) => {
+  if (userStatsMap.has(userId)) {
+    const stats: UserStats | undefined = userStatsMap.get(userId) || {
+      completedItems: 0,
+      totalItems: 0,
+      moneyOwed: 0,
+    };
 
-const calculateUserMoneyOwed = ({ completedItems, totalItems }: UserStats) => {
-  const moneyMultiplier = Number(process.env.MONEY_MULTIPLIER);
-  return (totalItems - completedItems) * moneyMultiplier;
-};
+    userStatsMap.set(userId, {
+      ...stats,
+      totalItems: stats.totalItems + 1,
+    });
+  } else {
+    userStatsMap.set(userId, {
+      completedItems: 0,
+      totalItems: 1,
+      moneyOwed: 0,
+    });
+  }
+}
 
 // Start cron jobs
 export const taskReportCron = cron.schedule(
@@ -46,7 +56,16 @@ export const taskReportCron = cron.schedule(
 
       // Generate report
       const userStatsMap: Map<string, UserStats> = new Map();
-      const projectItems = syncResources.items.filter((item) => {
+
+      for (const user of users) {
+        userStatsMap.set(user.todoistId!, {
+          completedItems: 0,
+          totalItems: 0,
+          moneyOwed: 0,
+        })
+      }
+
+      const nonRecurringTasks = syncResources.items.filter((item) => {
         const dueDate = item.due?.date
           ? new Date(item.due.date).setUTCHours(0, 0, 0, 0)
           : null;
@@ -55,40 +74,30 @@ export const taskReportCron = cron.schedule(
         return (
           item.project_id === process.env.TODOIST_PROJECT_ID &&
           dueDate &&
-          (!isSameDay(dueDate, today) || item.due?.is_recurring)
+          !isSameDay(dueDate, today) &&
+          !item.due?.is_recurring
         );
       });
 
-      for (const item of projectItems) {
+      const recurringTasks = syncResources.items.filter((item) => {
+        return (
+          item.project_id === process.env.TODOIST_PROJECT_ID &&
+          item.due?.is_recurring
+        );
+      })
+
+      for (const item of nonRecurringTasks) {
         const userId = item.added_by_uid;
         const dueDate = item.due?.date;
-        const isRecurring = item.due?.is_recurring;
         const completedAt = item.completed_at
           ? new Date(item.completed_at)
           : null;
 
         const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
         // Skip if due date is in the future
-        if (!completedAt && dueDate && new Date(dueDate) > today && !isRecurring) continue;
+        if (!completedAt && dueDate && new Date(dueDate) > today) continue;
 
-        if (userStatsMap.has(userId)) {
-          const stats: UserStats | undefined = userStatsMap.get(userId) || {
-            completedItems: 0,
-            totalItems: 0,
-            moneyOwed: 0,
-          };
-
-          userStatsMap.set(userId, {
-            ...stats,
-            totalItems: stats.totalItems + 1,
-          });
-        } else {
-          userStatsMap.set(userId, {
-            completedItems: 0,
-            totalItems: 1,
-            moneyOwed: 0,
-          });
-        }
+        processTasks(userStatsMap, userId);
 
         // check if due date is greater than two days prior
         let date = new Date();
@@ -107,14 +116,65 @@ export const taskReportCron = cron.schedule(
             });
           }
         }
+      }
 
-        if (isRecurring && dueDate && new Date(dueDate) > date) {
-          const stats = userStatsMap.get(userId);
-          if (stats) {
+      function isWeekday(date: Date) {
+        const day = getDay(date);
+        return day !== 0 && day !== 6; // 0 = Sunday, 6 = Saturday
+      }
+
+      for (const item of recurringTasks) {
+        const userId = item.added_by_uid;
+        const stats = userStatsMap.get(userId);
+        const dueString = item.due?.string;
+        const dueDate = item.due?.date;
+        const today = new Date();
+        const yesterday = new Date(today)
+        yesterday.setDate(today.getDate() - 1)
+
+        if (!stats || !dueDate) continue;
+        const dueDateDate = addDays(dueDate, 1)
+
+        if (isFuture(dueDate)) continue;
+
+        const day = dueString?.split(" ")[1];
+        if (!day) continue;
+
+        if (day === 'day') {
+          isYesterday(dueDateDate) ?
             userStatsMap.set(userId, {
               ...stats,
-              completedItems: stats.completedItems + 1,
-            });
+              totalItems: stats?.totalItems + 1
+            }) :
+            userStatsMap.set(userId, {
+              ...stats,
+              totalItems: stats.totalItems + 1,
+              completedItems: stats.completedItems + 1
+            })
+        } else if (day === 'workday' && isWeekday(yesterday)) {
+          isYesterday(dueDateDate) ?
+            userStatsMap.set(userId, {
+              ...stats,
+              totalItems: stats?.totalItems + 1
+            }) :
+            userStatsMap.set(userId, {
+              ...stats,
+              totalItems: stats.totalItems + 1,
+              completedItems: stats.completedItems + 1
+            })
+        } else {
+          const days = day.split(",").map(d => dayStringToNumber(d))
+          if (days.includes(getDay(yesterday))) {
+            isYesterday(dueDateDate) ?
+              userStatsMap.set(userId, {
+                ...stats,
+                totalItems: stats?.totalItems + 1
+              }) :
+              userStatsMap.set(userId, {
+                ...stats,
+                totalItems: stats.totalItems + 1,
+                completedItems: stats.completedItems + 1
+              })
           }
         }
       }
