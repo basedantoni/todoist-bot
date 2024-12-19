@@ -8,19 +8,19 @@ export const bulkCreateTasks = (input: string) => {
         const filePath = path.resolve(__dirname, input);
 
         fs.createReadStream(filePath)
-                .pipe(csv(['Type', 'Difficulty', 'Name']))
+                .pipe(csv(['Type', 'Difficulty', 'Name', 'Link']))
                 .on('data', (data) => results.push(data))
                 .on('end', async () => {
                         for (const task of results) {
                                 const newTask = await TodoistService.addItem({
                                         content: task.Name,
                                         project_id: process.env.TODOIST_LEETCODE_PROJECT_ID!,
-                                        // add section id to the addItem options
+                                        section_id: "176825721",
                                         labels: [task.Difficulty, task.Type],
-                                        description: "", // add link to problem as the description
-                                        responsible_uid: "",
+                                        description: task.Link, // add link to problem as the description
                                 })
                                 console.log(newTask)
+                                await new Promise(r => setTimeout(r, 2000));
                         }
                 })
 }

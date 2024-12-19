@@ -106,6 +106,7 @@ export class TodoistService {
                 project_id,
                 labels,
                 description,
+                section_id,
                 responsible_uid,
         }: NewTask) {
                 const headers = {
@@ -124,9 +125,11 @@ export class TodoistService {
                                         labels,
                                         description,
                                         responsible_uid,
+                                        section_id,
                                 },
                         },
                 ];
+                console.log(`Commands: ${Object.entries(commands[0].args)}`)
 
                 // Construct the body as form data
                 const body = new URLSearchParams({
