@@ -30,7 +30,7 @@ const processTasks = (userStatsMap: Map<string, UserStats>, userId: string) => {
 
 // Start cron jobs
 export const taskReportCron = cron.schedule(
-        "*/1 * * * *", // Snapshot at 1 PM UTC
+        "0 13 * * *", // Snapshot at 1 PM UTC
         async () => {
                 try {
                         // Get last sync token
@@ -47,12 +47,12 @@ export const taskReportCron = cron.schedule(
                         const syncResources = await TodoistService.readSyncResources(syncToken);
 
                         // Create new sync token
-                        // const newSyncToken = await SyncTokenService.createSyncToken({
-                        //   syncToken: syncResources.sync_token,
-                        // });
-                        // if (!newSyncToken) {
-                        //   throw new Error("Failed to create sync token");
-                        // }
+                        const newSyncToken = await SyncTokenService.createSyncToken({
+                                syncToken: syncResources.sync_token,
+                        });
+                        if (!newSyncToken) {
+                                throw new Error("Failed to create sync token");
+                        }
 
                         // Generate report
                         const userStatsMap: Map<string, UserStats> = new Map();
@@ -135,14 +135,12 @@ export const taskReportCron = cron.schedule(
                                 if (!stats || !dueDate) continue;
                                 const dueDateDate = addDays(dueDate, 1)
 
-                                if (isFuture(dueDate)) continue;
 
-                                const day = dueString?.split(" ")[1];
+                                const day = dueString?.replace("every ", "");
                                 if (!day) continue;
 
 
                                 if (day === 'day') {
-                                        isYesterday(dueDateDate) ? console.log(`Did Not Complete ${item.content}`) : console.log(`Add Completed For ${item.content}`)
                                         isYesterday(dueDateDate) ?
                                                 userStatsMap.set(userId, {
                                                         ...stats,
@@ -154,7 +152,6 @@ export const taskReportCron = cron.schedule(
                                                         completedItems: stats.completedItems + 1
                                                 })
                                 } else if (day === 'workday' && isWeekday(yesterday)) {
-                                        isYesterday(dueDateDate) ? console.log(`Did Not Complete ${item.content}`) : console.log(`Add Completed For ${item.content}`)
                                         isYesterday(dueDateDate) ?
                                                 userStatsMap.set(userId, {
                                                         ...stats,
@@ -220,35 +217,33 @@ export const taskReportCron = cron.schedule(
                         } else if (anthonyMoneyOwed === jacobMoneyOwed) {
                                 message = "No one owes any money\n" + message;
                         }
-                        console.log(message)
-                        console.log(userStatsMap)
 
-                        // if (userStatsMap.size > 0) {
-                        //   await TodoistService.addItem({
-                        //     content: message,
-                        //     project_id: process.env.TODOIST_PROJECT_ID || "",
-                        //     labels: ["bot", "report"],
-                        //     description: description,
-                        //     responsible_uid: process.env.BOT_USER_ID || "",
-                        //   });
-                        // }
+                        if (userStatsMap.size > 0) {
+                                await TodoistService.addItem({
+                                        content: message,
+                                        project_id: process.env.TODOIST_PROJECT_ID || "",
+                                        labels: ["bot", "report"],
+                                        description: description,
+                                        responsible_uid: process.env.BOT_USER_ID || "",
+                                });
+                        }
 
-                        // for (const [userId, stats] of userStatsMap.entries()) {
-                        //   let user = await UserService.showUserByTodoistId(userId);
-                        //   if (!user) continue;
+                        for (const [userId, stats] of userStatsMap.entries()) {
+                                let user = await UserService.showUserByTodoistId(userId);
+                                if (!user) continue;
 
-                        //   try {
-                        //     await SnapshotService.createSnapshot({
-                        //       activeTasks: stats.totalItems,
-                        //       completedTasks: stats.completedItems,
-                        //       userId: user.id,
-                        //     });
+                                try {
+                                        await SnapshotService.createSnapshot({
+                                                activeTasks: stats.totalItems,
+                                                completedTasks: stats.completedItems,
+                                                userId: user.id,
+                                        });
 
-                        //     console.log(`Created snapshot for ${user.name}`);
-                        //   } catch (error) {
-                        //     console.error("Error creating snapshot:", error);
-                        //   }
-                        // }
+                                        console.log(`Created snapshot for ${user.name}`);
+                                } catch (error) {
+                                        console.error("Error creating snapshot:", error);
+                                }
+                        }
                 } catch (error) {
                         console.error("Error running task snapshot job:", error);
                 }
