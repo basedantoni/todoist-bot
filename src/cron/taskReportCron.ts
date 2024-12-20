@@ -30,7 +30,7 @@ const processTasks = (userStatsMap: Map<string, UserStats>, userId: string) => {
 
 // Start cron jobs
 export const taskReportCron = cron.schedule(
-        "0 13 * * *", // Snapshot at 1 PM UTC
+        "0 13 * * *", // Snapshot every day at 1 PM UTC
         async () => {
                 try {
                         // Get last sync token
